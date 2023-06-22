@@ -1,88 +1,64 @@
-# CFUN
-**We have stopped this project more than one year for some reasons (e.g. GPU memory limit, accuracy issue), so this repo has been deprecated as well. There will not be any update for this. Actually I am no longer in this lab, so it is impossible for me to maintain the code any more. No pre-trained weights will be available in the future.**  
-  
-**However, I'll still try my best to answer questions so don't mind opening issues about the code or data. Or you can directly email me questions because I sometimes may not look at this repo. Some frequently asked questions are presented in README.**  
-  
-This is a Pytorch implementation of CFUN for whole heart segmentation. And it's also the source code for [CFUN: Combining Faster R-CNN and U-net Network for Efficient Whole Heart Segmentation](https://arxiv.org/pdf/1812.04914.pdf).  
-  
-Due to Faster R-CNN's precise positioning ability and U-net's powerful segmentation ability, our elaborately designed pipeline which combines them together needs only one-step detection and segmentation inference to get the whole heart segmentation result, achieving excellent performances both in speed and precision. Besides, we adopt and design a new loss function based on edge information named 3D Edge_loss to accelerate the convergence and get a better segment result.
+# Pytorch implementation of 3D UNet
 
-## Architecture
-![Failed to load the image](https://github.com/Wuziyi616/CFUN/blob/master/architecture.png)
+This implementation is based on the orginial 3D UNet paper and adapted to be used for MRI or CT image segmentation task   
+> Link to the paper: [https://arxiv.org/pdf/1606.06650v1.pdf](https://arxiv.org/pdf/1606.06650v1.pdf)
 
-## Prerequisites
-- Python 2.7+ or 3.5+
-- Pytorch 0.4.1
-- numpy, skimage, scipy and imgaug
+## Model Architecture
 
-## Usage
-The dataset we use for our experience is mainly based on the MM-WHS2017 Challenge, but you can apply it to whatever data you have.  
-However, if you want to apply our method to your own dataset, we have to remind you of the differences between CFUN and Mask-RCNN.
-In our pipeline, the ground-truth bounding box is the whole heart organ rather than specific part of the heart, like the left ventricle blood cavity (LV), the myocardium of the left ventricle (Myo) or so, because they're all tightly connected together. Therefore, if the targets to segment in your dataset are seperated organs, then you may want to change the code in model.py's function load_image_gt to generate different organ-specific bounding boxes.  
-  
-First, you need to prepare a dataset.json file which contains all the directions of the training and testing images and training labels.  
-Then, you can start training the model with:  
-  
-    $ python3 heart_main.py train --weights="none" --data="data_dir" --stage="beginning"  
-  
-where data_dir is the directory where you place your dataset.json file.  
-  
-After the loss of the first_stage training ('beginning' in our code) seems to go stably, you can run the finetuning stage with:  
-  
-    $ python3 heart_main.py train --weights="./logs/heart/weight_flie" --data="data_dir" --stage="finetune"  
-  
-Or, you can test the performance of the model via:  
-  
-    $ python3 heart_main.py test --weights="./logs/heart/weight_flie" --data="data_dir" --stage="stage" --save=true --bbox=false --limit=20  
-  
-where save=true means you want to save the detection result in the .nii.gz format and bbox=false means you don't want to draw the predicted bounding box. But if you want to test the detection performances at the same time, you can set it as true.
-Besides, the number of limit is the images you want to test.  
-  
-In the default code, testing images are also images with groung-truth so IoUs are calculated to present the result for accuracy. 
-If you want to test the model on non-label images, then you can modify the code in heart_main.py.  
+The model architecture follows an encoder-decoder design which requires the input to be divisible by 16 due to its downsampling rate in the analysis path.
 
-## Results
-Our method reaps an average of 85.9% Dice score on the test set. And it takes only less than 15 seconds to generate a segment result.  
-  
-One prediction of our model can be seen as follows:
-### Example
-![Failed to load the image](https://github.com/Wuziyi616/CFUN/blob/master/result.jpg)
-visualization of some test results. From top to bottom, the four CT images are 1007, 1009 and 1019, respectively.  
-(a) shows the original CT images, (b) shows ground truth and (c) shows the test result.
+![3D Unet](https://github.com/AghdamAmir/3D-UNet/blob/main/3D-UNET.png)
 
-## Frequently Asked Questions
-1. About training data  
-In the arXiv CFUN paper, we mentioned in page 7 section 4.1 that:
-> An automated algorithm is designed to generate segmentation labels of 40 originaltest samples...
-  
-Actually that *automated algorithm* is just a 3D U-Net. We first train a 3D U-Net on the original 20 training samples of MM-WHS, and then use it to generate peusedo labels for the 40 test samples to enlarge our training set for CFUN. The reason for doing so is that CFUN tends to overfit easily if we only use 20 training samples.  
-I've uploaded these peusedo labels generated by 3D U-Net [here](https://drive.google.com/open?id=1QncIL8SDeLT3FOUyUCOGj_dJSbe40ixQ). It has an average IoU of around 81%.  
-  
-**Update:** the ground-truth label for test images are now available [here](https://sjtueducn-my.sharepoint.com/personal/lilei_sky_sjtu_edu_cn/_layouts/15/onedrive.aspx?originalPath=aHR0cHM6Ly9zanR1ZWR1Y24tbXkuc2hhcmVwb2ludC5jb20vOmY6L2cvcGVyc29uYWwvbGlsZWlfc2t5X3NqdHVfZWR1X2NuL0VqV0tzYTAtTnRSTWlMM0c5bDgtVEFjQkRvMUY0UG0xTnhQb3NwX1UydUJNUEE%5FcnRpbWU9TFE5ZTlqbFAyRWc&id=%2Fpersonal%2Flilei%5Fsky%5Fsjtu%5Fedu%5Fcn%2FDocuments%2F2017%5FMMWHS%2FEvaluate%2Ftools%2FMMWHS%5Fevaluation%5Ftestdata%5Flabel%5Fencrypt%5F1mm%5Fforpublic%2Fnii).
-  
-2. About the json file for loading data  
-The json file is just used for loading data and label as I've said in previous part. So you can just modify the code in dataloader and load data & label pairs in your own way. Or, for the format of json file, you can refer to this [issue](https://github.com/Wuziyi616/CFUN/issues/2). It just lists all the data path and its corresponding label path.
-  
-3. Someone told me that the MM-WHS test data is not longer available on its website, here I provide the 40 CT test images for the project. You can download them via [Google Drive](https://drive.google.com/file/d/1YiJCplvmNDu1ru-y2hm_MNo4xhi_93ul/view?usp=sharing).
+## Dataset
 
-## Related Works
-I've borrowed some code from these excellent works:
-- [pytorch-mask-rcnn](https://github.com/multimodallearning/pytorch-mask-rcnn)
-- [Pseudo-3D Residual Networks](https://github.com/qijiezhao/pseudo-3d-pytorch)
-- [Pytorch-UNet](https://github.com/milesial/Pytorch-UNet)
+The Dataset class used for training the network is specially adapted to be used for the **Medical Segmentation Decathlon challenge**. 
 
-## Citation
-Please cite our paper if you find it useful in your research:
+This dataset contains several segmentation tasks on various organs including **Liver Tumours, Brain Tumours, Hippocampus, Lung Tumours, Prostate, Cardiac,
+Pancreas Tumour, Colon Cancer, Hepatic Vessels and Spleen segmentation**.
 
-```
-@article{xu2018cfun,
-  title={CFUN: Combining faster R-CNN and U-net network for efficient whole heart segmentation},
-  author={Xu, Zhanwei and Wu, Ziyi and Feng, Jianjiang},
-  journal={arXiv preprint arXiv:1812.04914},
-  year={2018}
-}
-```
+- Please also note that in the case which the task contain more than 2 classes (1: for foreground, 0: for background), you will need to modify the output
+of the model to reshape it to the size of the groundtruth mask in train.py file.
 
-## Contact
-  
-If you have any questions about the code, please contact Ziyi Wu (dazitu616@gmail.com)
+> The link to the dataset: [http://medicaldecathlon.com/](http://medicaldecathlon.com/)
+
+- The Dataset class uses Monai package for reading MRI or CT and also applying augmentations on them in the transform.py file. You can modify the applied
+transformation in this file according to your preferences.
+
+## Configure the network
+
+All the configurations and hyperparameters are set in the config.py file.
+Please note that you need to change the path to the dataset directory in the config.py file before running the model.
+
+**Parameters:**
+
+- DATASET_PATH -> the directory path to dataset .tar files
+
+- TASK_ID -> specifies the the segmentation task ID (see the dict below for hints)
+
+- IN_CHANNELS -> number of input channels
+
+- NUM_CLASSES -> specifies the number of output channels for dispirate classes
+
+- BACKGROUND_AS_CLASS -> if True, the model treats background as a class
+
+- TRAIN_VAL_TEST_SPLIT -> delineates the ratios in which the dataset shoud be splitted. The length of the array should be 3.
+
+- TRAINING_EPOCH -> number of training epochs
+
+- VAL_BATCH_SIZE -> specifies the batch size of the training DataLoader
+
+- TEST_BATCH_SIZE -> specifies the batch size of the test DataLoader
+
+- TRAIN_CUDA -> if True, moves the model and inference onto GPU
+
+- BCE_WEIGHTS -> the class weights for the Binary Cross Entropy loss
+
+## Training
+
+After configure config.py, you can start to train by running
+
+`python train.py`
+
+We also employ tensorboard to visualize the training process.
+
+`tensorboard --logdir=runs/`
