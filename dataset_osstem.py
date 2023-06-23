@@ -18,8 +18,8 @@ from utils import resize_img, generate_gaussian_heatmap
 from tqdm import tqdm
 
 
-TRAIN = ['6', '7', '8', '9', '12', '13', '15', '19', '21', '25', '26', '28', '29', '30', '31', '32', '33',
-         '34', '35', '36', '37', '38', '39', '41', '44', '46', '47', '48', '49', '50', '51', '52']
+TRAIN = ['6', '7', '8', '9', '12', '13', '15', '19', '21', '23', '25', '26', '28', '29', '30', '31', '32',
+         '33', '34', '35', '36', '37', '38', '39', '41', '44', '46', '47', '48', '49', '50', '51', '52']
 VAL = ['1', '2', '3', '4', '5', '10', '11', '14', '16', '17']
 TEST = ['18', '20', '22', '24', '27', '40', '42', '45']
 # TEST = [ '1', '2', '3', '4', '5', '10', '11', '14', '16', '17', '6', '7', '8', '9', '12', '13', '15', '19', '21', '25', '26', '28', '29', '30', '31', '32', '33',
@@ -30,20 +30,18 @@ TOOTH_NUM = ['11', '12', '13', '14', '15', '16', '17', '18',
              '31', '32', '33', '34', '35', '36', '37', '38',
              '41', '42', '43', '44', '45', '46', '47', '48']
 
-OUTLIER = {'1' : ['22', '34'],
+OUTLIER = {'1' : ['34'],
            '2' : ['12', '13'],
            '3' : ['17', '34', '36', '42', '43', '44', '45', '47'],
            '4' : ['16', '23', '25', '35', '37', '42', '47'],
            '5' : ['35'],
            '10' : ['11'],
            '11' : ['11'],
-           '14' : ['22', '31'],
+           '14' : ['31'],
            '16' : ['42'],
-           '17' : ['34', '43', '44'],
-           '18' : ['13', '33'],
-           '20' : ['32', '42'],
+           '17' : ['43'],
+           '18' : ['13'],
            '22' : ['33'],
-           '23' : ['33'],
            '24' : ['13'],
            '27' : ['45'],
            '40' : ['16'],
@@ -104,10 +102,7 @@ class MedicalSegmentationDecathlon(Dataset):
 
         # print('tensor_heatmaps : ', tensor_heatmaps.shape)
 
-        # img_array = resize(img_array, (128, 256, 256))
-        # label_array = resize(label_array, (128, 256, 256))
-
-        # label_array = np.moveaxis(label_array, -1, 0)
+        # img_array = resize(img_array, (128, 2mask_data_file_namesy, -1, 0)
         # proccessed_out = {'name': name, 'image': img_array, 'label': label_array}
         
         
@@ -155,28 +150,30 @@ class MedicalSegmentationDecathlon(Dataset):
         #     mask_array = resize_img(mask_array, (64, 128, 128))
         #     mask_anno[mask.split('_')[0]] = mask_array
 
-        cls, bbox, mask = [], [], []
+        cls, bbox, heatmaps, mask = [], [], [], []
         for tooth in tqdm(annos, desc='(Annotating...) ', ascii=' ='):
             cls.append(np.expand_dims((np.array(TOOTH_NUM)==tooth)*1, axis=0))
             
             box = bbox_anno[tooth]
             # bbox -> heatmap
-            box = np.array([(box[0]+box[3])/2, (box[1]+box[4])/2, (box[2]+box[5])/2]) / np.array(img_array.shape) * np.array([64, 128, 128])
-            heatmap = generate_gaussian_heatmap((64, 128, 128), box)
-            bbox.append(np.expand_dims(heatmap, axis=0))
+            box = np.array([(box[0]+box[3])/2, (box[1]+box[4])/2, (box[2]+box[5])/2]) / np.array(img_array.shape) * np.array([128, 128, 128])
+            bbox.append(np.expand_dims(box, axis=0))
+            heatmap = generate_gaussian_heatmap((128, 128, 128), box)
+            heatmaps.append(np.expand_dims(heatmap, axis=0))
             
             mask_object = nib.load(os.path.join(self.dir, person_id, 'nii', tooth+"_gt.nii.gz"))
             mask_array = mask_object.get_fdata()
-            mask_array = resize_img(mask_array, (64, 128, 128))
+            mask_array = resize_img(mask_array, (128, 128, 128))
             mask.append(np.expand_dims(mask_array, axis=0))
             # else:
             #     bbox.append(None)
             #     mask.append(None)
         
         
-        img_array = resize_img(np.array(img_array), (64, 128, 128))
+        img_array = resize_img(np.array(img_array), (128, 128, 128))
         np_cls = np.concatenate(cls, axis=0)
         np_bbox = np.concatenate(bbox, axis=0)
+        np_heatmap = np.concatenate(heatmaps, axis=0)
         np_mask = np.concatenate(mask, axis=0)
         
         
@@ -185,6 +182,7 @@ class MedicalSegmentationDecathlon(Dataset):
             'image': img_array,
             'cls': np_cls,
             'bbox': np_bbox,
+            'heatmap': np_heatmap,
             'mask' : np_mask
         }
         

@@ -23,7 +23,7 @@ train_transform_cuda = Compose(
         # RandScaleIntensityd(keys=['image', 'mask'], factors=0.1, prob=1.0),
         # RandShiftIntensityd(keys='image', offsets=0.1, prob=1.0),
         # DivisiblePadd(k=16, keys=["image", "label"]),
-        ToTensord(keys=['image', 'bbox', 'mask'], device='cuda')
+        ToTensord(keys=['image', 'cls', 'bbox', 'heatmap', 'mask'], device='cuda')
     ]
 )
 
@@ -33,6 +33,6 @@ val_transform_cuda = Compose(
         AddChanneld(keys=["image"]),
         NormalizeIntensityd(keys='image', nonzero=True, channel_wise=True),
         # DivisiblePadd(k=16, keys=["image", "label"]),
-        ToTensord(keys=['image', 'bbox', 'mask'], device='cuda')
+        ToTensord(keys=['image', 'cls', 'bbox', 'heatmap', 'mask'], device='cuda')
     ]
 )

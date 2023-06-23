@@ -152,7 +152,7 @@ def get_maximum_point(heatmaps):
 #     heatmap = torch.tensor(heatmap)
 #     return heatmap
 
-def generate_gaussian_heatmap(size, coord, sigma=0.5):
+def generate_gaussian_heatmap(size, coord, sigma=2):
     d = np.arange(size[0])
     w = np.arange(size[1])
     h = np.arange(size[2])
@@ -312,3 +312,42 @@ def postprocess(x, res, slice_d, slice_h, slice_w):
     res[:, ds:de, hs:he, ws:we] = x
 
     return res
+
+
+def hadamard_product(heatmaps):
+    
+    '''
+    heatmaps : [1, 4, 64, 128, 128]
+    '''
+
+    results = []
+    heatmaps = heatmaps.unsqueeze(0).unsqueeze(-1)
+
+    for i in range(heatmaps.shape[1]):
+        single_heatmap = heatmaps[0, i]
+        size = single_heatmap.shape
+
+        d = torch.linspace(0, size[0]-1, size[0])
+        h = torch.linspace(0, size[1]-1, size[1])
+        w = torch.linspace(0, size[2]-1, size[2])
+        
+        meshz, meshy, meshx = torch.meshgrid((d,h,w))
+        grid = torch.stack((meshz, meshy, meshx), 3).cuda()
+
+        sum = torch.sum(single_heatmap)
+        repeat_single_heatmap = single_heatmap.repeat(1, 1, 1, 3)
+
+        res = repeat_single_heatmap * grid
+        d_sum = torch.sum(res[:,:,:,0])
+        h_sum = torch.sum(res[:,:,:,1])
+        w_sum = torch.sum(res[:,:,:,2])
+
+        # results.append([(d_sum/sum), (h_sum/sum), (w_sum/sum)])
+
+        pred_keypoints = torch.stack([(d_sum/sum), (h_sum/sum), (w_sum/sum)], dim=0)
+        results.append(pred_keypoints)
+
+    results = torch.stack(results, dim=0)
+    # print('results : ', results[0][0], results[0][0].requires_grad)
+
+    return results
