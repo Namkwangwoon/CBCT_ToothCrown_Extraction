@@ -2,6 +2,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from utils import pool, make_kp_layer
+from lib.cpool import TopPool, BottomPool, LeftPool, RightPool, FrontPool, BackPool
+
 
 def weight_init_xavier_uniform(submodule):
     if isinstance(submodule, torch.nn.Conv2d):
@@ -226,7 +229,7 @@ class EDVNet(nn.Module):
         self.down_tr256 = DownTransition(128, 2, elu, dropout=True)
         self.up_tr256 = EDUpTransition(256)
         self.up_tr128 = EDUpTransition(128)
-        self.up_tr64 = EDUpTransition(64, 32, last_layer=True)
+        self.up_tr64 = EDUpTransition(64, 16, last_layer=True)
         # self.up_tr32 = EDUpTransition(32, 8, 1, elu)
         # self.out_tr = OutputTransition(32, elu, nll)
         
@@ -237,13 +240,13 @@ class EDVNet(nn.Module):
         x = self.down_tr128(x)
         x = self.down_tr256(x)
         out = self.up_tr256(x)
-        out = self.up_tr128(out)
-        out = self.up_tr64(out)
+        feat = self.up_tr128(out)
+        out = self.up_tr64(feat)
         # out = self.up_tr32(out)
 
         # out = F.sigmoid(out)
 
-        return out
+        return feat, out
 
 
 
@@ -264,41 +267,41 @@ class InterOutput(nn.Module):
 
 
 
-class EDVNetx3(nn.Module):
-    # the number of convolutions in each layer corresponds
-    # to what is in the actual prototxt, not the intent
-    def __init__(self, elu=True, nll=False):
-        super(EDVNet, self).__init__()
-        # self.in_tr = InputTransition(16, elu)
-        # self.down_tr32 = Conv3DBlock(16, 32)
+# class EDVNetx3(nn.Module):
+#     # the number of convolutions in each layer corresponds
+#     # to what is in the actual prototxt, not the intent
+#     def __init__(self, elu=True, nll=False):
+#         super(EDVNet, self).__init__()
+#         # self.in_tr = InputTransition(16, elu)
+#         # self.down_tr32 = Conv3DBlock(16, 32)
 
-        # self.down_tr32 = DownTransition(16, 1, elu)
-        self.down_tr64 = DownTransition(32, 2, elu)
-        self.down_tr128 = DownTransition(64, 3, elu, dropout=True)
-        self.down_tr256 = DownTransition(128, 2, elu, dropout=True)
-        self.up_tr256 = EDUpTransition(256)
-        self.up_tr128 = EDUpTransition(128)
-        self.up_tr64 = EDUpTransition(64, 32, last_layer=True)
-        # self.up_tr32 = EDUpTransition(32, 8, 1, elu)
-        # self.out_tr = OutputTransition(32, elu, nll)
-        self.out1 = InterOutput(128)
-        self.out2 = InterOutput(64)
+#         # self.down_tr32 = DownTransition(16, 1, elu)
+#         self.down_tr64 = DownTransition(32, 2, elu)
+#         self.down_tr128 = DownTransition(64, 3, elu, dropout=True)
+#         self.down_tr256 = DownTransition(128, 2, elu, dropout=True)
+#         self.up_tr256 = EDUpTransition(256)
+#         self.up_tr128 = EDUpTransition(128)
+#         self.up_tr64 = EDUpTransition(64, 32, last_layer=True)
+#         # self.up_tr32 = EDUpTransition(32, 8, 1, elu)
+#         # self.out_tr = OutputTransition(32, elu, nll)
+#         self.out1 = InterOutput(128)
+#         self.out2 = InterOutput(64)
         
 
-    def forward(self, x):
-        # out32 = self.down_tr32(x)
-        x = self.down_tr64(x)
-        x = self.down_tr128(x)
-        x = self.down_tr256(x)
-        out1 = self.up_tr256(x)
-        out2 = self.up_tr128(out1)
-        out3 = self.up_tr64(out2)
-        # out = self.up_tr32(out)
-        out1 = self.out1(out1)
-        out2 = self.out2(out2)
-        # out = F.sigmoid(out)
+#     def forward(self, x):
+#         # out32 = self.down_tr32(x)
+#         x = self.down_tr64(x)
+#         x = self.down_tr128(x)
+#         x = self.down_tr256(x)
+#         out1 = self.up_tr256(x)
+#         out2 = self.up_tr128(out1)
+#         out3 = self.up_tr64(out2)
+#         # out = self.up_tr32(out)
+#         out1 = self.out1(out1)
+#         out2 = self.out2(out2)
+#         # out = F.sigmoid(out)
 
-        return [out1, out2, out3]
+#         return [out1, out2, out3]
 
 
 
@@ -307,22 +310,51 @@ class HeatmapVNet(nn.Module):
         super(HeatmapVNet, self).__init__()
         self.backbone = VNet()
         self.encoder_decoder = EDVNet()
+        self.box_head = BoxHead()
 
     def forward(self, x):
         x = self.backbone(x)
-        x = self.encoder_decoder(x)
+        feat, x = self.encoder_decoder(x)
+        
+        coor1, coor2 = self.box_head(feat)
 
-        return x
+        return x, coor1, coor2
     
     
-class HeatmapVNetx3(nn.Module):
+# class HeatmapVNetx3(nn.Module):
+#     def __init__(self):
+#         super(HeatmapVNet, self).__init__()
+#         self.backbone = VNet()
+#         self.encoder_decoder = EDVNetx3()
+
+#     def forward(self, x):
+#         x = self.backbone(x)
+#         x = self.encoder_decoder(x)
+
+#         return x
+    
+    
+
+class BoxHead(nn.Module):
     def __init__(self):
-        super(HeatmapVNet, self).__init__()
-        self.backbone = VNet()
-        self.encoder_decoder = EDVNetx3()
-
-    def forward(self, x):
-        x = self.backbone(x)
-        x = self.encoder_decoder(x)
-
-        return x
+        super(BoxHead, self).__init__()
+        
+        # self.pooling_module_1 = pool(64, TopPool, LeftPool, BackPool)
+        # self.pooling_module_2 = pool(64, BottomPool, RightPool, FrontPool)
+        
+        self.regression_module_1 = make_kp_layer(64, 64, 3)
+        self.regression_module_2 = make_kp_layer(64, 64, 3)
+        
+    def forward(self, feat):
+        '''
+        feat : [b, c, d, h, w]
+        ind : [b, num_objects]
+        '''
+        
+        # # x1 = self.pooling_module_1(feat)
+        # # x2 = self.pooling_module_2(feat)
+        
+        x1 = self.regression_module_1(feat)
+        x2 = self.regression_module_2(feat)
+        
+        return x1, x2

@@ -9,7 +9,6 @@ from dataset_heatmap import get_val_Dataloaders
 from torch.optim import Adam
 from torch.utils.tensorboard import SummaryWriter
 from unet3d_heatmap import UNet3D
-from losses import DiceLoss
 from transforms import (train_transform_cuda, val_transform_cuda)
 import torch.nn.functional as F
 import torch.nn as nn
@@ -61,7 +60,8 @@ def save_result(image, target, ground_truth, idx, save_dir='./results_heatmap_tr
 
 model = UNet3D(in_channels=1 , num_classes= 4)
 
-MODEL_WEIGHT_PATH = './checkpoints/epoch174_valLoss0.4417979419231415.pth'
+# MODEL_WEIGHT_PATH = './checkpoints/epoch174_valLoss0.4417979419231415.pth'
+MODEL_WEIGHT_PATH = './checkpoints/epoch7_valLoss0.05445924028754234.pth'
 model.load_state_dict(torch.load(MODEL_WEIGHT_PATH))
 
 model = model.cuda()

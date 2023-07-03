@@ -20,3 +20,5 @@ gui.py
 
 __pycache__/
 *.py[cod]
+
+lib/cpool/build/

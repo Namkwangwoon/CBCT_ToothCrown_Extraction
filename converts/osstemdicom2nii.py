@@ -6,20 +6,19 @@ import numpy as np
 
 from skimage.measure import regionprops
 
-import pydicom
-from dcm2tensor import read_subject
-
-
-DATA_PATH = os.path.abspath('../datasets/osstem_clean')
+DATA_PATH = os.path.abspath('/media/jeeheon/SSD/osstem_clean')
 # SAVE_PATH = os.path.abspath('/media/jeeheon/SSD/osstem_clean/2차/1/1/nii')
 
 data_names = os.listdir(DATA_PATH)
 data_names = sorted(data_names)
-data_names = ['23']
+<<<<<<< HEAD
+data_names = ['3']
+=======
+>>>>>>> parent of de2f1a1... feat : add GD Loss
 
 for idx, data_name in enumerate(data_names):
-    # if idx < 10:
-    #     continue
+    if idx < 10:
+        continue
     print('=> Progress : ', idx+1, ' / ', len(data_names))
     # if idx > 0:
     #     break
@@ -32,14 +31,10 @@ for idx, data_name in enumerate(data_names):
     dicom_dir = os.path.join(cur_dir, 'CT')
     save_dir = os.path.join(cur_dir, 'nii')
 
-    # # if not os.path.exists(save_dir):
-    # #     os.makedirs(save_dir)
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
 
-    # # dicom2nifti.convert_directory(dicom_dir, save_dir)
-    
-    # org, img, voxel_spacing, initial_position = read_subject(os.listdir(dicom_dir), dicom_dir)
-    # print(voxel_spacing)
-    
+    dicom2nifti.convert_directory(dicom_dir, save_dir)
 
     '''
     maskdata to nii
@@ -58,8 +53,8 @@ for idx, data_name in enumerate(data_names):
         mask_data_file_names.append(mask_file_name)
 
     for idx2, mask_file_name in enumerate(mask_data_file_names):
-    #     print('    Mask : ', idx2+1, ' / ', len(mask_data_file_names))
-    #     # print('mask_file_name : ', mask_file_name)
+        print('    Mask : ', idx2+1, ' / ', len(mask_data_file_names))
+        # print('mask_file_name : ', mask_file_name)
         mask_idx = mask_file_name[:2]
         mask_info_name = '{}.mask'.format(mask_idx)
 
@@ -82,21 +77,21 @@ for idx, data_name in enumerate(data_names):
         except Exception as e:
             continue
 
-        # if whole_mask_arr.size == 0:
-        #     whole_mask_arr = mask_arr
-        # else:
-        #     whole_mask_arr = whole_mask_arr + mask_arr
+        if whole_mask_arr.size == 0:
+            whole_mask_arr = mask_arr
+        else:
+            whole_mask_arr = whole_mask_arr + mask_arr
 
-        # nii_mask_arr = nib.Nifti1Image(mask_arr, affine=np.eye(4))
-        # nib.save(nii_mask_arr, save_dir + '/{}_gt.nii.gz'.format(mask_idx))
+        nii_mask_arr = nib.Nifti1Image(mask_arr, affine=np.eye(4))
+        nib.save(nii_mask_arr, save_dir + '/{}_gt.nii.gz'.format(mask_idx))
 
         img_array_for_box = np.asarray(mask_arr, dtype=int)
         props = regionprops(img_array_for_box)
         bbox = props[0].bbox
         box_dict[mask_idx] = bbox
 
-    # nii_whole_mask_arr = nib.Nifti1Image(whole_mask_arr, affine=np.eye(4))
-    # nib.save(nii_whole_mask_arr, save_dir + '/whole_mask.nii.gz')
+    nii_whole_mask_arr = nib.Nifti1Image(whole_mask_arr, affine=np.eye(4))
+    nib.save(nii_whole_mask_arr, save_dir + '/whole_mask.nii.gz')
 
     with open(save_dir + '/bbox.json','w') as f:
         json.dump(box_dict, f, indent=4)

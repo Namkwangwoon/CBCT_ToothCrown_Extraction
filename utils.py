@@ -1,5 +1,7 @@
 import numpy as np
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
 import nibabel as nib
 
 def compute_MIP_and_coordinates(predict, target):
@@ -152,7 +154,11 @@ def get_maximum_point(heatmaps):
 #     heatmap = torch.tensor(heatmap)
 #     return heatmap
 
-def generate_gaussian_heatmap(size, coord, sigma=2):
+<<<<<<< HEAD
+def generate_gaussian_heatmap(size, coord, sigma=1):
+=======
+def generate_gaussian_heatmap(size, coord, sigma=0.5):
+>>>>>>> parent of de2f1a1... feat : add GD Loss
     d = np.arange(size[0])
     w = np.arange(size[1])
     h = np.arange(size[2])
@@ -311,6 +317,7 @@ def postprocess(x, res, slice_d, slice_h, slice_w):
 
     res[:, ds:de, hs:he, ws:we] = x
 
+<<<<<<< HEAD
     return res
 
 
@@ -351,3 +358,111 @@ def hadamard_product(heatmaps):
     # print('results : ', results[0][0], results[0][0].requires_grad)
 
     return results
+
+
+class pool(nn.Module):
+    def __init__(self, dim, pool1, pool2, pool3):
+        super(pool, self).__init__()
+        self.p1_conv1 = convolution(3, dim, 128)
+        self.p2_conv1 = convolution(3, dim, 128)
+        self.p3_conv1 = convolution(3, dim, 128)    
+
+        self.p_conv1 = nn.Conv3d(128, 128, 3, padding=1, bias=False)
+        self.p_bn1 = nn.BatchNorm3d(128)
+        self.p_conv2 = nn.Conv3d(128, 128, 3, padding=1, bias=False)
+        self.p_bn2 = nn.BatchNorm3d(128)
+        self.p_conv3 = nn.Conv3d(128, dim, 3, padding=1, bias=False)
+        self.p_bn3 = nn.BatchNorm3d(dim)
+
+        self.conv1 = nn.Conv3d(dim, dim, 1, bias=False)
+        self.bn1 = nn.BatchNorm3d(dim)
+
+        self.conv2 = convolution(3, dim, dim)
+
+        self.pool1 = pool1()
+        self.pool2 = pool2()
+        self.pool3 = pool3()
+
+    def forward(self, x):
+
+        p1 = self.p1_conv1(x)
+        p2 = self.p2_conv1(x)
+        p3 = self.p3_conv1(x)
+        bn1 = self.bn1(self.conv1(x))
+
+        p_bn1 = self.p_bn1(self.p_conv1(self.pool1(p1) + p2))
+        p_bn2 = self.p_bn2(self.p_conv2(self.pool2(p_bn1) + p3))
+        p_bn3 = self.p_bn3(self.p_conv3(self.pool3(p_bn2)))
+
+        out = self.conv2(F.relu(p_bn3 + bn1, inplace=True))
+
+        return out
+
+
+class convolution(nn.Module):
+    def __init__(self, k, inp_dim, out_dim, stride=1, with_bn=True):
+        super(convolution, self).__init__()
+
+        pad = (k - 1) // 2
+        self.conv = nn.Conv3d(inp_dim, out_dim, (k, k, k), padding=(pad, pad, pad), stride=(stride, stride, stride), bias=not with_bn)
+        self.bn = nn.BatchNorm3d(out_dim) if with_bn else nn.Sequential()
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x):
+        conv = self.conv(x)
+        bn = self.bn(conv)
+        relu = self.relu(bn)
+        return relu
+    
+
+def make_kp_layer(cnv_dim, curr_dim, out_dim):
+      return nn.Sequential(convolution(3, cnv_dim, curr_dim, with_bn=False),
+                       nn.Conv3d(curr_dim, out_dim, (1, 1, 1)))
+      
+      
+def _tranpose_and_gather_feature(feature, ind):
+    
+    # feature = feature.permute(0, 2, 3, 1).contiguous()  # [B, C, H, W] => [B, H, W, C]
+    feature = feature.permute(0, 2, 3, 4, 1).contiguous() # [B, C, D, H, W] => [B, D, H, W, C]
+    # feature = feature.view(feature.size(0), -1, feature.size(3))  # [B, H, W, C] => [B, H x W, C]
+    feature = feature.view(feature.size(0), -1, feature.size(4))  # [B, D, H, W, C] => [B, D x H x W, C]
+    ind = ind[:, :, None].expand(ind.shape[0], ind.shape[1], feature.shape[-1])  # [B, num_obj] => [B, num_obj, C]
+    feature = feature.gather(1, ind)  # [B, D x H x W, C] => [B, num_obj, C]
+    
+    return feature
+
+
+
+def draw_boxes(box_indexes, shape=(128, 128, 128)):
+    '''
+    box_indexes : [b, num_boxes, 6]
+    '''
+    box_volumes = []
+    
+    box_index = (box_indexes[0] * 128).round().type(torch.int)
+    
+    for ind in box_index:
+        box_volume = torch.zeros(shape)
+        
+        box_volume[ind[0]:ind[3], ind[1], ind[2]] = 1
+        box_volume[ind[0]:ind[3], ind[1], ind[5]] = 1
+        box_volume[ind[0]:ind[3], ind[4], ind[2]] = 1
+        box_volume[ind[0]:ind[3], ind[4], ind[5]] = 1
+        
+        box_volume[ind[0], ind[1]:ind[4], ind[2]] = 1
+        box_volume[ind[0], ind[1]:ind[4], ind[5]] = 1
+        box_volume[ind[3], ind[1]:ind[4], ind[2]] = 1
+        box_volume[ind[3], ind[1]:ind[4], ind[5]] = 1
+        
+        box_volume[ind[0], ind[1], ind[2]:ind[5]] = 1
+        box_volume[ind[0], ind[4], ind[2]:ind[5]] = 1
+        box_volume[ind[3], ind[1], ind[2]:ind[5]] = 1
+        box_volume[ind[3], ind[4], ind[2]:ind[5]] = 1
+        
+        box_volumes.append(box_volume.unsqueeze(0))
+    
+    
+    return torch.cat(box_volumes).cuda()
+=======
+    return res
+>>>>>>> parent of de2f1a1... feat : add GD Loss

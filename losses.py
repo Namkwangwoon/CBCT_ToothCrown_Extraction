@@ -47,6 +47,7 @@ class BinaryFocalLoss(nn.Module):
         neg_loss = -self.alpha * neg_weight * F.logsigmoid(-output)  # / (torch.sum(neg_weight) + 1e-4)
         loss = pos_loss + neg_loss
         loss = loss.mean()
+<<<<<<< HEAD
         return loss
 
 TOOTH_NUM = ['11', '12', '13', '14', '15', '16', '17', '18',
@@ -101,8 +102,6 @@ class GDLoss(nn.Module):
         super(GDLoss, self).__init__()
         
     def forward(self, heatmaps, removes):
-        print('heatmaps : ', heatmaps.shape)
-        print('removes : ', removes.shape)
         
         '''
         removes.shape = [1, 25, 32]
@@ -125,7 +124,7 @@ class GDLoss(nn.Module):
         3 -> 18
         4 -> 19
         '''
-        for idx in range(32):
+        for idx in range(16):
             # heatmap_cur_idx = YES_TEETHS[idx]
             # print('heatmap_cur_idx : ', heatmap_cur_idx)
             if YES_TEETHS[idx] == 0:
@@ -152,3 +151,6 @@ class GDLoss(nn.Module):
         losses = torch.stack(losses, dim=0)
         losses = losses.mean()
         return losses
+=======
+        return loss
+>>>>>>> parent of de2f1a1... feat : add GD Loss
