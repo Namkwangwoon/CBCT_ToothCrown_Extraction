@@ -25,11 +25,7 @@ train_transform_cuda = Compose(
         # RandScaleIntensityd(keys=['image', 'mask'], factors=0.1, prob=1.0),
         # RandShiftIntensityd(keys='image', offsets=0.1, prob=1.0),
         # DivisiblePadd(k=16, keys=["image", "label"]),
-<<<<<<< HEAD
         ToTensord(keys=['image', 'cls', 'bbox', 'center', 'heatmap', 'mask'], device='cuda')
-=======
-        ToTensord(keys=['image', 'bbox', 'mask'], device='cuda')
->>>>>>> parent of de2f1a1... feat : add GD Loss
     ]
 )
 
@@ -40,10 +36,6 @@ val_transform_cuda = Compose(
         ThresholdIntensityd(keys='image', threshold=1000, above=True, cval=0.0),
         NormalizeIntensityd(keys='image', nonzero=True, channel_wise=True),
         # DivisiblePadd(k=16, keys=["image", "label"]),
-<<<<<<< HEAD
         ToTensord(keys=['image', 'cls', 'bbox', 'center', 'heatmap', 'mask'], device='cuda')
-=======
-        ToTensord(keys=['image', 'bbox', 'mask'], device='cuda')
->>>>>>> parent of de2f1a1... feat : add GD Loss
     ]
 )

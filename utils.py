@@ -154,11 +154,7 @@ def get_maximum_point(heatmaps):
 #     heatmap = torch.tensor(heatmap)
 #     return heatmap
 
-<<<<<<< HEAD
 def generate_gaussian_heatmap(size, coord, sigma=1):
-=======
-def generate_gaussian_heatmap(size, coord, sigma=0.5):
->>>>>>> parent of de2f1a1... feat : add GD Loss
     d = np.arange(size[0])
     w = np.arange(size[1])
     h = np.arange(size[2])
@@ -317,7 +313,6 @@ def postprocess(x, res, slice_d, slice_h, slice_w):
 
     res[:, ds:de, hs:he, ws:we] = x
 
-<<<<<<< HEAD
     return res
 
 
@@ -463,6 +458,3 @@ def draw_boxes(box_indexes, shape=(128, 128, 128)):
     
     
     return torch.cat(box_volumes).cuda()
-=======
-    return res
->>>>>>> parent of de2f1a1... feat : add GD Loss

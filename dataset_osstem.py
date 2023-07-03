@@ -18,14 +18,9 @@ from utils import resize_img, generate_gaussian_heatmap
 from tqdm import tqdm
 
 
-<<<<<<< HEAD
 TRAIN = ['6', '7', '8', '9', '12', '13', '15', '19', '23', '25', '26', '28', '29', '30', '31', '32',
          '33', '34', '35', '37', '38', '39', '41', '44', '46', '47', '48', '49', '50', '51', '52']
 # 21, 36
-=======
-TRAIN = ['6', '7', '8', '9', '12', '13', '15', '19', '21', '25', '26', '28', '29', '30', '31', '32', '33',
-         '34', '35', '36', '37', '38', '39', '41', '44', '46', '47', '48', '49', '50', '51', '52']
->>>>>>> parent of de2f1a1... feat : add GD Loss
 VAL = ['1', '2', '3', '4', '5', '10', '11', '14', '16', '17']
 TEST = ['18', '20', '22', '24', '27', '40', '42', '45']
 # TEST = [ '1', '2', '3', '4', '5', '10', '11', '14', '16', '17', '6', '7', '8', '9', '12', '13', '15', '19', '21', '25', '26', '28', '29', '30', '31', '32', '33',
@@ -41,20 +36,18 @@ UPPER_TOOTH_NUM = ['11', '12', '13', '14', '15', '16', '17', '18',
 LOWER_TOOTH_NUM = ['41', '42', '43', '44', '45', '46', '47', '48',
                 '31', '32', '33', '34', '35', '36', '37', '38',]
 
-OUTLIER = {'1' : ['22', '34'],
+OUTLIER = {'1' : ['34'],
            '2' : ['12', '13'],
            '3' : ['17', '34', '36', '42', '43', '44', '45', '47'],
            '4' : ['16', '23', '25', '35', '37', '42', '47'],
            '5' : ['35'],
            '10' : ['11'],
            '11' : ['11'],
-           '14' : ['22', '31'],
+           '14' : ['31'],
            '16' : ['42'],
-           '17' : ['34', '43', '44'],
-           '18' : ['13', '33'],
-           '20' : ['32', '42'],
+           '17' : ['43'],
+           '18' : ['13'],
            '22' : ['33'],
-           '23' : ['33'],
            '24' : ['13'],
            '27' : ['45'],
            '40' : ['16'],
@@ -103,35 +96,6 @@ class MedicalSegmentationDecathlon(Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-<<<<<<< HEAD
-=======
-        # name = self.data[idx]
-
-        # img_path = os.path.join(self.dir, self.mode, name, 'data.nii.gz')
-        # label_path = os.path.join(self.dir, self.mode, name, 'gt_alpha.nii.gz')
-
-        # img_object = nib.load(img_path)
-        # label_object = nib.load(label_path)
-
-        # img_array = img_object.get_fdata()
-        # label_array = label_object.get_fdata()
-
-        # img_array = resize_img(img_array, (64, 128, 128))
-        # label_array = resize_img(label_array, (64, 128, 128))
-        # numpy_label = label_array.numpy()
-
-        # list_label_points = utils.compute_3D_coordinate(numpy_label)
-        # tensor_heatmaps = utils.kp2heatmap(list_label_points, size=(64, 128, 128))
-
-        # print('tensor_heatmaps : ', tensor_heatmaps.shape)
-
-        # img_array = resize(img_array, (128, 256, 256))
-        # label_array = resize(label_array, (128, 256, 256))
-
-        # label_array = np.moveaxis(label_array, -1, 0)
-        # proccessed_out = {'name': name, 'image': img_array, 'label': label_array}
-        
->>>>>>> parent of de2f1a1... feat : add GD Loss
         
         person_id = self.data[idx]
         print("< person", person_id, ">")
@@ -166,38 +130,26 @@ class MedicalSegmentationDecathlon(Dataset):
             annos = sorted(list(set(annos) - set(OUTLIER[person_id])))
             print(">>>", annos)
         
-<<<<<<< HEAD
         cls, bbox, heatmaps, mask = [], [], [], []
-=======
-        # kkk = nib.Nifti1Image(np.array(img_array), affine=np.eye(4))
-        # nib.save(kkk, person_id+"kkk.nii.gz")
-            
-        # mask_anno = {}
-        # for mask in tqdm(mask_list, desc='(Masks loading...) ', ascii=' ='):
-        #     mask_object = nib.load(os.path.join(self.dir, person_id, 'nii', mask))
-        #     mask_array = mask_object.get_fdata()
-        #     mask_array = resize_img(mask_array, (64, 128, 128))
-        #     mask_anno[mask.split('_')[0]] = mask_array
-
-        cls, bbox, mask = [], [], []
->>>>>>> parent of de2f1a1... feat : add GD Loss
         for tooth in tqdm(annos, desc='(Annotating...) ', ascii=' ='):
             cls.append(np.expand_dims((np.array(TOOTH_NUM)==tooth)*1, axis=0))
             
             box = bbox_anno[tooth]
             # bbox -> heatmap
-            box = np.array([(box[0]+box[3])/2, (box[1]+box[4])/2, (box[2]+box[5])/2]) / np.array(img_array.shape) * np.array([64, 128, 128])
-            heatmap = generate_gaussian_heatmap((64, 128, 128), box)
-            bbox.append(np.expand_dims(heatmap, axis=0))
+            box = np.array([(box[0]+box[3])/2, (box[1]+box[4])/2, (box[2]+box[5])/2]) / np.array(img_array.shape) * np.array([128, 128, 128])
+            bbox.append(np.expand_dims(box, axis=0))
+            heatmap = generate_gaussian_heatmap((128, 128, 128), box)
+            heatmaps.append(np.expand_dims(heatmap, axis=0))
             
             mask_object = nib.load(os.path.join(self.dir, person_id, 'nii', tooth+"_gt.nii.gz"))
             mask_array = mask_object.get_fdata()
-            mask_array = resize_img(mask_array, (64, 128, 128))
+            mask_array = resize_img(mask_array, (128, 128, 128))
             mask.append(np.expand_dims(mask_array, axis=0))
         
-        img_array = resize_img(np.array(img_array), (64, 128, 128))
+        img_array = resize_img(np.array(img_array), (128, 128, 128))
         np_cls = np.concatenate(cls, axis=0)
         np_bbox = np.concatenate(bbox, axis=0)
+        np_heatmap = np.concatenate(heatmaps, axis=0)
         np_mask = np.concatenate(mask, axis=0)
         
         proccessed_out = {
@@ -205,6 +157,7 @@ class MedicalSegmentationDecathlon(Dataset):
             'image': img_array,
             'cls': np_cls,
             'bbox': np_bbox,
+            'heatmap': np_heatmap,
             'mask' : np_mask
         }
         

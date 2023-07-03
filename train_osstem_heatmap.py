@@ -15,13 +15,8 @@ from osstem_transforms import (train_transform_cuda, val_transform_cuda)
 import torch.nn.functional as F
 import torch.nn as nn
 
-<<<<<<< HEAD
 from losses import BinaryFocalLoss, GDLoss
 from utils import hadamard_product, _tranpose_and_gather_feature
-=======
-from losses import BinaryFocalLoss
-import utils
->>>>>>> parent of de2f1a1... feat : add GD Loss
 
 # from test_heatmap import save_result
 
@@ -57,14 +52,10 @@ train_dataloader, val_dataloader, _ = get_train_val_test_Dataloaders(train_trans
 
 # criterion = DiceLoss()
 # criterion2 = nn.MSELoss()
-<<<<<<< HEAD
 criterion1 = BinaryFocalLoss()
 criterion2 = nn.L1Loss()
 gd_criterion = GDLoss()
 box_criterion = nn.MSELoss()
-=======
-criterion = BinaryFocalLoss()
->>>>>>> parent of de2f1a1... feat : add GD Loss
 
 optimizer = Adam(params=model.parameters(), lr=1e-3)
 scheduler = MultiStepLR(optimizer, [40, 120, 360], gamma=0.1, last_epoch=-1)
@@ -87,7 +78,6 @@ for epoch in range(TRAINING_EPOCH):
     for idx, data in enumerate(train_dataloader):
         # if idx > 0:
         #     break
-<<<<<<< HEAD
         image, bbox, center, heatmap, cls = data['image'], data['bbox'].type(torch.float32), data['center'], data['heatmap'], data['cls']
         
         # target, box = model(image)
@@ -98,12 +88,6 @@ for epoch in range(TRAINING_EPOCH):
         # print("box :", box.shape)
         # print()
         
-=======
-        image, ground_truth, cls = data['image'], data['bbox'], data['cls']
-        
-        target = model(image)
-        target = target[:, (torch.sum(cls, dim=1)==1)[0], :, :, :]
->>>>>>> parent of de2f1a1... feat : add GD Loss
         
         # print()
         # print("image :", image.shape)
@@ -112,7 +96,6 @@ for epoch in range(TRAINING_EPOCH):
         # print("target :", target.shape)
 
         ## gt x3번 넣어줘야 함!
-<<<<<<< HEAD
         train_loss_heatmap = criterion1(target, heatmap)
         
         train_target_idx = hadamard_product(target)
@@ -134,19 +117,13 @@ for epoch in range(TRAINING_EPOCH):
         print(' {} / {} => Total loss : {} | Heatmap loss : {} | Point loss : {} | GD loss : {} | Box loss : {}'.format(
             idx+1, len(train_dataloader), train_losses.item(), train_loss_heatmap.item(), train_loss_point.item(), train_gd_loss.item(), train_loss_box.item())
         )
-=======
-        loss_heatmap = criterion(target, ground_truth)
 
-        losses = loss_heatmap
-        print(' {} / {} => Total loss : {}'.format(idx+1, len(train_dataloader), losses.item()))
->>>>>>> parent of de2f1a1... feat : add GD Loss
-
-        losses.backward()
+        train_losses.backward()
         # _log_params(model, writer, 1)
         optimizer.step()
         optimizer.zero_grad()
 
-        train_loss += losses.item()
+        train_loss += train_losses.item()
     
     scheduler.step()
 
@@ -158,10 +135,9 @@ for epoch in range(TRAINING_EPOCH):
     print()
             
     with torch.no_grad():
-        for data in val_dataloader:
+        for idx, data in enumerate(val_dataloader):
             
             
-<<<<<<< HEAD
             image, bbox, center, heatmap, cls = data['image'], data['bbox'].type(torch.float32), data['center'], data['heatmap'], data['cls']
             target, coor1, coor2 = model(image)
             target = target[0, (torch.sum(cls, dim=1)==1)[0], :, :, :]
@@ -184,15 +160,6 @@ for epoch in range(TRAINING_EPOCH):
             
             val_loss_box = box_criterion(target_box, bbox)
         
-=======
-            image, ground_truth, cls = data['image'], data['bbox'], data['cls']
-            target = model(image)
-            target = target[:, (torch.sum(cls, dim=1)==1)[0], :, :, :]
-            
-            
-            ## gt 3번 넣어줘야 함!
-            loss_heatmap = criterion(target, ground_truth)
->>>>>>> parent of de2f1a1... feat : add GD Loss
         
             # gt_points = utils.compute_3D_coordinate(image.squeeze(0).squeeze(0).detach().cpu().numpy())
             # pred_points = utils.get_maximum_point(target.squeeze(0).detach().cpu().numpy())
@@ -203,14 +170,10 @@ for epoch in range(TRAINING_EPOCH):
             # loss_pts = criterion3(pred_points, tensor_gt_points)
 
             # valid_loss = (loss_pts / alpha_pts) + (alpha_heatmap * loss_heatmap)
-<<<<<<< HEAD
             valid_loss = val_loss_heatmap + val_loss_point + val_gd_loss + val_loss_box
             
             print(' {} / {} => Total loss : {} | Heatmap loss : {} | Point loss : {} | GD loss : {} | Box loss : {}'.format(
                 idx+1, len(val_dataloader), valid_loss.item(), val_loss_heatmap.item(), val_loss_point.item(), val_gd_loss.item(), val_loss_box.item()))
-=======
-            valid_loss = loss_heatmap
->>>>>>> parent of de2f1a1... feat : add GD Loss
             
             # print(' {} / {} => Point loss : {} | Heatmap loss : {} | Total loss : {}'.format(idx+1, len(train_dataloader), loss_pts.item() / 10, loss_heatmap.item() * 10, losses.item()))
 

@@ -47,7 +47,6 @@ class BinaryFocalLoss(nn.Module):
         neg_loss = -self.alpha * neg_weight * F.logsigmoid(-output)  # / (torch.sum(neg_weight) + 1e-4)
         loss = pos_loss + neg_loss
         loss = loss.mean()
-<<<<<<< HEAD
         return loss
 
 TOOTH_NUM = ['11', '12', '13', '14', '15', '16', '17', '18',
@@ -151,6 +150,3 @@ class GDLoss(nn.Module):
         losses = torch.stack(losses, dim=0)
         losses = losses.mean()
         return losses
-=======
-        return loss
->>>>>>> parent of de2f1a1... feat : add GD Loss

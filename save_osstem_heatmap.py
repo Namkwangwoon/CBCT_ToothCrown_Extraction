@@ -8,7 +8,7 @@ from torch.nn import CrossEntropyLoss
 # from dataset_heatmap import get_val_Dataloaders
 from dataset_osstem import get_val_Dataloaders
 from torch.optim import Adam
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
 from unet3d_heatmap import UNet3D
 # from losses import DiceLoss
 # from transforms import (train_transform_cuda, val_transform_cuda)
@@ -27,7 +27,6 @@ from tqdm import tqdm
 
 
 
-<<<<<<< HEAD
 def save_result(image, target, gt_cls, gt_heatmap, person_id, mask, center, bbox, save_dir='./results_heatmap_trans'):
     # print('image.shape : ', image.shape)
     # if len(image.shape) == 3:
@@ -38,15 +37,6 @@ def save_result(image, target, gt_cls, gt_heatmap, person_id, mask, center, bbox
     
     target, coor1, coor2 = target
     cls = gt_cls.max(-1)[1].type(torch.int64)
-=======
-def save_result(image, target, gt_cls, gt_heatmap, person_id, save_dir='./results_heatmap_trans'):
-    print('image.shape : ', image.shape)
-    if len(image.shape) == 3:
-        np_image = image.detach().cpu().numpy()
-    else:
-        np_image = image.squeeze(0).squeeze(0).detach().cpu().numpy()
-    print('np_image.shape : ', np_image.shape)
->>>>>>> parent of de2f1a1... feat : add GD Loss
     
     gt_cls = (torch.sum(gt_cls, dim=1)==1)[0]
     target = target[0, gt_cls]
@@ -80,7 +70,6 @@ def save_result(image, target, gt_cls, gt_heatmap, person_id, save_dir='./result
     # kp_arr = np.transpose(kp_arr, (2, 1, 0))
     '''
     
-<<<<<<< HEAD
     target_idx = torch.round(hadamard_product(target)).int()
     target_map = torch.zeros_like(target)
     
@@ -98,10 +87,6 @@ def save_result(image, target, gt_cls, gt_heatmap, person_id, save_dir='./result
     for p, t in zip(center, gt_point):
         t[p[0]][p[1]][p[2]] = 1
     np_gt_point = gt_point.detach().cpu().numpy()
-=======
-    np_target= target.detach().cpu().numpy()
-    np_gt_heatmap = gt_heatmap.squeeze(0).detach().cpu().numpy()
->>>>>>> parent of de2f1a1... feat : add GD Loss
     
     # print()
     # print("np_image :", np_image.shape)
@@ -123,7 +108,6 @@ def save_result(image, target, gt_cls, gt_heatmap, person_id, save_dir='./result
     # nii_image = nib.Nifti1Image(np_image, affine=np.eye(4))
     # nib.save(nii_image, save_dir + '/image_{}.nii.gz'.format(person_id))
     
-<<<<<<< HEAD
     # print("mask :", mask.shape)
     # mask = mask.squeeze(0).detach().cpu().numpy()
     
@@ -142,19 +126,6 @@ def save_result(image, target, gt_cls, gt_heatmap, person_id, save_dir='./result
         nib.save(nii_target, save_dir + '/target_point_{}_{}.nii.gz'.format(person_id, i))
         nib.save(nii_gt, save_dir + '/gt_{}_{}.nii.gz'.format(person_id, i))
         nib.save(nii_box, save_dir + '/gt_{}_{}.nii.gz'.format(person_id, i))
-=======
-    
-    
-    for i, (t, g) in enumerate(zip(tqdm(np_target), np_gt_heatmap)):
-        
-        # t = (t==np.max(t)) * 1.0
-        
-        nii_target = nib.Nifti1Image(t, affine=np.eye(4))
-        nii_gt = nib.Nifti1Image(g, affine=np.eye(4))
-        
-        nib.save(nii_target, save_dir + '/target_{}_{}.nii.gz'.format(person_id, i))
-        nib.save(nii_gt, save_dir + '/05_gt_{}_{}.nii.gz'.format(person_id, i))
->>>>>>> parent of de2f1a1... feat : add GD Loss
         
         
 
@@ -162,11 +133,7 @@ def save_result(image, target, gt_cls, gt_heatmap, person_id, save_dir='./result
 model = HeatmapVNet()
 
 
-<<<<<<< HEAD
 MODEL_WEIGHT_PATH = './checkpoints/epoch3_valLoss0.1160542368888855.pth'
-=======
-MODEL_WEIGHT_PATH = './checkpoints/epoch19_valLoss0.000404465536121279.pth'
->>>>>>> parent of de2f1a1... feat : add GD Loss
 model.load_state_dict(torch.load(MODEL_WEIGHT_PATH))
 
 model = model.cuda()
@@ -178,11 +145,7 @@ val_dataloader = get_val_Dataloaders(train_transforms= train_transforms, val_tra
 model.eval()
 
 for idx, data in enumerate(val_dataloader):
-<<<<<<< HEAD
     image, gt_heatmap, gt_cls, person_id, mask, bbox, center = data['image'], data['heatmap'], data['cls'], data['person_id'], data['mask'], data['bbox'], data['center']
-=======
-    image, gt_heatmap, gt_cls, person_id = data['image'], data['bbox'], data['cls'], data['person_id']
->>>>>>> parent of de2f1a1... feat : add GD Loss
 
     target = model(image)
     
@@ -198,10 +161,7 @@ for idx, data in enumerate(val_dataloader):
     '''
 
     # ground_truth = ground_truth.squeeze(0)
-<<<<<<< HEAD
     save_result(image, target, gt_cls, gt_heatmap, person_id, mask, center, bbox)
-=======
-    save_result(image, target, gt_cls, gt_heatmap, person_id)
->>>>>>> parent of de2f1a1... feat : add GD Loss
     
     break
+    
